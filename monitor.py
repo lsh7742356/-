@@ -1,4 +1,3 @@
-import requests...
 import requests, time, hmac, hashlib, base64, os
 from bs4 import BeautifulSoup
 
@@ -32,7 +31,6 @@ def run():
             detail = requests.get(latest_url, timeout=15)
             detail.encoding = 'utf-8'
             raw_text = BeautifulSoup(detail.text, 'html.parser').get_text(separator="\n", strip=True)
-            # 包含关键词“策略”确保推送
             full_message = f"【小赵策略总结更新】\n链接：{latest_url}\n\n{raw_text}"
             send_ding(full_message[:15000]) 
             with open("last_url.txt", "w") as f: f.write(latest_url)
