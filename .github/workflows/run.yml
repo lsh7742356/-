@@ -1,0 +1,21 @@
+name: Market-Monitor
+on:
+  schedule:
+    # 这里的 cron 是 UTC 时间。
+    # 每 15 分钟运行一次，周一至周五 (1-5) 运行
+    - cron: '*/15 13-21 * * 1-5'
+  workflow_dispatch: # 允许手动点按钮运行
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.10' }
+      - run: pip install requests beautifulsoup4
+      - name: Run
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: python monitor.py
