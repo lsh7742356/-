@@ -1,0 +1,38 @@
+name: Market-Monitor
+
+on:
+  workflow_dispatch:      # 允许手动运行
+  schedule:
+    - cron: '0 */3 * * *'  # 每 3 小时自动运行一次（每天不间断，由脚本判断日期）
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: 安装必要插件
+        run: pip install requests beautifulsoup4 pytz
+
+      - name: 执行抓取
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: python monitor.py
+
+      - name: 保存抓取进度
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add last_content_hash.txt || echo "No changes"
+          git commit -m "Update history" || echo "No changes"
+          git push || echo "No changes"
