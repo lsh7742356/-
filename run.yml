@@ -1,9 +1,9 @@
 name: Market-Monitor
 
 on:
-  workflow_dispatch:      # 允许手动运行
+  workflow_dispatch:                  # 允许手动触发运行
   schedule:
-    - cron: '0 */3 * * *'  # 每 3 小时自动运行一次（每天不间断，由脚本判断日期）
+    - cron: '0 0,3,6,9,12,15,18,21 * * *'   # 北京时间每3小时整点运行（对应UTC 0,3,6,9,12,15,18,21点）
 
 permissions:
   contents: write
