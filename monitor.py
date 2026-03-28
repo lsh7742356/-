@@ -21,22 +21,21 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """最终优化版：标题与内容清晰区分"""
+    """加强版：让标题和内容清晰分开"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 主标题（第一行）处理成醒目大标题
-    content = re.sub(r'^#\s*(.+?)$', r'\n\n**📌 \1**', content, flags=re.MULTILINE, count=1)
+    # 1. 处理最顶部的主标题（最重要）
+    content = re.sub(r'^#\s*(.+?)$', r'\n\n**📌 \1**\n\n', content, flags=re.MULTILINE, count=1)
     
-    # 二级标题
-    content = re.sub(r'^##\s*(.+?)$', r'\n\n### **📌 \1**', content, flags=re.MULTILINE)
+    # 2. 二级标题
+    content = re.sub(r'^##\s*(.+?)$', r'\n\n### **📌 \1**\n\n', content, flags=re.MULTILINE)
     
-    # 三级标题
-    content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**', content, flags=re.MULTILINE)
+    # 3. 三级标题
+    content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**\n\n', content, flags=re.MULTILINE)
     
-    # 项目符号 + 标题后增加明显空行
+    # 项目符号优化
     content = content.replace("•", "\n* ")
-    content = re.sub(r'(\*\*📌 .+?\*\*)', r'\n\n\1\n\n', content)
     
     data = {
         "msgtype": "markdown",
@@ -74,10 +73,10 @@ def run():
         current_time = extract_beijing_time(raw_text) or bj_now + ":00"
         print(f"📍 当前页面北京时间: {current_time}")
         
-        print("🔧 当前为临时测试模式 → 每次都推送（用于测试标题排版）")
+        print("🔧 当前为临时测试模式 → 每次都推送")
         
         send_ding(raw_text, current_time)
-        print("🚀 已执行推送（测试模式）")
+        print("🚀 已执行推送")
         
     except Exception as e:
         print(f"💥 运行异常: {str(e)}")
