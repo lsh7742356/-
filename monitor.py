@@ -21,21 +21,30 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """加强版：让标题和内容有明显区分"""
+    """最终优化版：标题清晰 + 人物对话单独换行"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 1. 主标题（最醒目处理）
+    # 1. 主标题处理（醒目大标题）
     content = re.sub(r'^财经聊天总结.*休市总结.*$', r'\n\n**📌 \g<0>**\n\n', content, flags=re.MULTILINE)
     
-    # 2. 常见二级标题（聊天总结、具体信息等）
+    # 2. 常见大标题
     titles = ["聊天总结", "具体信息", "指数/ETF 信息", "个股信息", "个股/板块信息", 
               "期权信息", "经济事件与宏观", "宏观与地缘政治", "不同观点对比"]
     for title in titles:
         content = content.replace(title, f'\n\n### **📌 {title}**\n\n')
     
-    # 项目符号优化
-    content = content.replace("•", "\n* ")
+    # 3. 重点优化：人物对话单独换行处理
+    # 管理员发言
+    content = re.sub(r'(管理员\s*xiaozhaolucky[^：:]*[：:])', r'\n\n**👤 \1** ', content)
+    # 用户发言
+    content = re.sub(r'(用户\s*[\w]+[^：:]*[：:])', r'\n\n**👤 \1** ', content)
+    
+    # 4. 项目符号处理 + 增加换行
+    content = content.replace("•", "\n\n• ")
+    
+    # 5. 清理多余空格
+    content = re.sub(r'\n{3,}', '\n\n', content)
     
     data = {
         "msgtype": "markdown",
