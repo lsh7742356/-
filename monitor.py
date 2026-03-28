@@ -21,18 +21,18 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """加强版：让标题和内容清晰分开"""
+    """加强版：让标题和内容有明显区分"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 1. 处理最顶部的主标题（最重要）
-    content = re.sub(r'^#\s*(.+?)$', r'\n\n**📌 \1**\n\n', content, flags=re.MULTILINE, count=1)
+    # 1. 主标题（最醒目处理）
+    content = re.sub(r'^财经聊天总结.*休市总结.*$', r'\n\n**📌 \g<0>**\n\n', content, flags=re.MULTILINE)
     
-    # 2. 二级标题
-    content = re.sub(r'^##\s*(.+?)$', r'\n\n### **📌 \1**\n\n', content, flags=re.MULTILINE)
-    
-    # 3. 三级标题
-    content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**\n\n', content, flags=re.MULTILINE)
+    # 2. 常见二级标题（聊天总结、具体信息等）
+    titles = ["聊天总结", "具体信息", "指数/ETF 信息", "个股信息", "个股/板块信息", 
+              "期权信息", "经济事件与宏观", "宏观与地缘政治", "不同观点对比"]
+    for title in titles:
+        content = content.replace(title, f'\n\n### **📌 {title}**\n\n')
     
     # 项目符号优化
     content = content.replace("•", "\n* ")
