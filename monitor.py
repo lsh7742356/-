@@ -21,23 +21,24 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """正式版：更完整抓取 + 清晰排版"""
+    """结构保留优化版"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 主标题处理
-    content = re.sub(r'^财经聊天总结.*休市总结.*$', r'\n\n**财经聊天总结 - 休市总结（非交易时段）**\n\n', content, flags=re.MULTILINE)
+    # 1. 主标题 - 保持一行干净加粗
+    content = re.sub(r'^# 财经聊天总结.*休市总结.*$', r'\n\n**财经聊天总结 - 休市总结（非交易时段）**\n\n', content, flags=re.MULTILINE)
     
-    # 常见标题加粗
-    titles = ["聊天总结", "具体信息", "指数/ETF 信息", "个股信息", "个股/板块信息", 
-              "期权与仓位策略", "经济事件", "经济事件与宏观", "宏观与地缘政治", "不同观点对比"]
-    for title in titles:
-        content = content.replace(title, f'\n\n**{title}**\n\n')
+    # 2. 二级标题 (## )
+    content = re.sub(r'^##\s*(.+?)$', r'\n\n** \1 **\n\n', content, flags=re.MULTILINE)
     
-    # 人物对话轻度加粗
+    # 3. 三级标题 (### ) - 重要！保留子标题层级
+    content = re.sub(r'^###\s*(.+?)$', r'\n\n** \1 **\n\n', content, flags=re.MULTILINE)
+    
+    # 4. 人物对话轻度加粗
     content = re.sub(r'(管理员 xiaozhaolucky)', r'**管理员 xiaozhaolucky**', content)
     content = re.sub(r'(用户\s*[\w]+)', r'**用户 \1**', content)
     
+    # 项目符号优化
     content = content.replace("•", "\n• ")
     content = re.sub(r'\n{3,}', '\n\n', content)
     
@@ -51,7 +52,6 @@ def send_ding(content, beijing_time):
     requests.post(url, json=data)
 
 def extract_beijing_time(text):
-    """只以北京时间作为去重唯一标准"""
     patterns = [
         r'北京时间[：:]\s*([\d\-:\sCST]+)',
         r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*CST)'
@@ -75,13 +75,10 @@ def run():
         main_body = soup.find('main') or soup.find('body')
         raw_text = main_body.get_text(separator="\n", strip=True)
         
-        current_time = extract_beijing_time(raw_text)
-        if not current_time:
-            current_time = bj_now + ":00"
-        
+        current_time = extract_beijing_time(raw_text) or bj_now + ":00"
         print(f"📍 当前页面北京时间: {current_time}")
         
-        # === 严格只以北京时间去重 ===
+        # 严格只以北京时间去重
         time_file = "last_beijing_time.txt"
         last_time = ""
         if os.path.exists(time_file):
@@ -92,7 +89,7 @@ def run():
             print("😴 北京时间未变化 → 内容相同，不推送")
             return
         
-        # 改进抓取：从主标题开始抓取更完整的内容
+        # 从主标题开始抓取，保留更多原始结构
         start_pos = raw_text.find("财经聊天总结")
         if start_pos == -1:
             start_pos = 0
