@@ -1,5 +1,8 @@
 import requests
 import re
+import base64
+import hmac
+import hashlib
 import os
 from datetime import datetime
 import pytz
@@ -11,18 +14,18 @@ SECRET = os.environ.get("DINGTALK_SECRET")
 BASE_URL = "https://stock.autoin.me"
 
 def get_sign():
-    timestamp = str(round(time.time() * 1000))   # 这里需要 time 模块
+    timestamp = str(round(datetime.now().timestamp() * 1000))
     secret_enc = SECRET.encode('utf-8')
     string_to_sign = '{}\n{}'.format(timestamp, SECRET)
     hmac_code = hmac.new(secret_enc, string_to_sign.encode('utf-8'), digestmod=hashlib.sha256).digest()
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """临时测试版：重点优化标题与内容区分"""
+    """最终优化版：标题与内容清晰区分"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 主标题（第一行大标题）处理成醒目大标题
+    # 主标题（第一行）处理成醒目大标题
     content = re.sub(r'^#\s*(.+?)$', r'\n\n**📌 \1**', content, flags=re.MULTILINE, count=1)
     
     # 二级标题
@@ -31,7 +34,7 @@ def send_ding(content, beijing_time):
     # 三级标题
     content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**', content, flags=re.MULTILINE)
     
-    # 项目符号优化 + 标题后增加空行
+    # 项目符号 + 标题后增加明显空行
     content = content.replace("•", "\n* ")
     content = re.sub(r'(\*\*📌 .+?\*\*)', r'\n\n\1\n\n', content)
     
