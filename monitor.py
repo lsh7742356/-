@@ -21,29 +21,29 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """最终优化版：标题清晰 + 人物对话单独换行"""
+    """最终版：干净标题 + 清晰人物对话"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 1. 主标题处理（醒目大标题）
-    content = re.sub(r'^财经聊天总结.*休市总结.*$', r'\n\n**📌 \g<0>**\n\n', content, flags=re.MULTILINE)
+    # 1. 主标题处理（只加粗，不加图标）
+    content = re.sub(r'^财经聊天总结.*休市总结.*$', r'\n\n**财经聊天总结 - 休市总结（非交易时段）**\n\n', content, flags=re.MULTILINE)
     
-    # 2. 常见大标题
+    # 2. 其他标题只加粗，不加 📌
     titles = ["聊天总结", "具体信息", "指数/ETF 信息", "个股信息", "个股/板块信息", 
               "期权信息", "经济事件与宏观", "宏观与地缘政治", "不同观点对比"]
     for title in titles:
-        content = content.replace(title, f'\n\n### **📌 {title}**\n\n')
+        content = content.replace(title, f'\n\n**{title}**\n\n')
     
-    # 3. 重点优化：人物对话单独换行处理
-    # 管理员发言
-    content = re.sub(r'(管理员\s*xiaozhaolucky[^：:]*[：:])', r'\n\n**👤 \1** ', content)
-    # 用户发言
-    content = re.sub(r'(用户\s*[\w]+[^：:]*[：:])', r'\n\n**👤 \1** ', content)
+    # 3. 人物对话统一处理（干净格式）
+    # 管理员
+    content = re.sub(r'(管理员\s*xiaozhaolucky[^：:]*[：:])', r'\n\n**👤 管理员 xiaozhaolucky**：', content)
+    # 用户
+    content = re.sub(r'(用户\s*[\w]+[^：:]*[：:])', r'\n\n**👤 \1**', content)
     
-    # 4. 项目符号处理 + 增加换行
+    # 4. 项目符号优化 + 换行
     content = content.replace("•", "\n\n• ")
     
-    # 5. 清理多余空格
+    # 清理多余空行
     content = re.sub(r'\n{3,}', '\n\n', content)
     
     data = {
