@@ -18,21 +18,24 @@ def get_sign():
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """推送优化：保留网页原始结构，只做轻度美化"""
+    """推送优化：清晰区分标题和内容"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 1. 把网页主标题（第一行）突出显示为大标题
+    # 1. 处理最顶部的主标题（让它成为醒目的大标题）
     content = re.sub(r'^#\s*(.+?)$', r'\n\n### **📌 \1**', content, flags=re.MULTILINE, count=1)
     
-    # 2. 处理常见的二级标题（## 开头）
+    # 2. 处理二级标题（如 ## 聊天总结）
     content = re.sub(r'^##\s*(.+?)$', r'\n\n### **📌 \1**', content, flags=re.MULTILINE)
     
-    # 3. 处理三级标题（### 开头）
+    # 3. 处理三级标题（如 ### 操作策略）
     content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**', content, flags=re.MULTILINE)
     
     # 项目符号优化
     content = content.replace("•", "\n* ")
+    
+    # 增加一些自然换行，让标题和内容更清晰分开
+    content = re.sub(r'(\*\*📌 .+?\*\*)', r'\n\n\1\n', content)
     
     data = {
         "msgtype": "markdown",
@@ -44,7 +47,7 @@ def send_ding(content, beijing_time):
     requests.post(url, json=data)
 
 def extract_beijing_time(text):
-    """只以北京时间作为去重唯一标准"""
+    """严格只以北京时间作为去重唯一标准"""
     patterns = [
         r'北京时间[：:]\s*([\d\-:\sCST]+)',
         r'北京时间[:：]\s*([0-9\-:\s]+)',
@@ -86,7 +89,7 @@ def run():
             print("😴 北京时间未变化 → 内容相同，不推送")
             return
         
-        # 执行推送（保留原始结构）
+        # 执行推送
         send_ding(raw_text, current_time)
         
         # 保存新时间
