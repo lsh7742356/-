@@ -11,31 +11,29 @@ SECRET = os.environ.get("DINGTALK_SECRET")
 BASE_URL = "https://stock.autoin.me"
 
 def get_sign():
-    timestamp = str(round(time.time() * 1000))
+    timestamp = str(round(time.time() * 1000))   # 这里需要 time 模块
     secret_enc = SECRET.encode('utf-8')
     string_to_sign = '{}\n{}'.format(timestamp, SECRET)
     hmac_code = hmac.new(secret_enc, string_to_sign.encode('utf-8'), digestmod=hashlib.sha256).digest()
     return timestamp, base64.b64encode(hmac_code).decode('utf-8')
 
 def send_ding(content, beijing_time):
-    """临时测试版：清晰区分标题和内容"""
+    """临时测试版：重点优化标题与内容区分"""
     ts, sign = get_sign()
     url = f"{WEBHOOK}&timestamp={ts}&sign={sign}"
    
-    # 1. 主标题处理（最顶部的大标题）
-    content = re.sub(r'^#\s*(.+?)$', r'\n\n### **📌 \1**', content, flags=re.MULTILINE, count=1)
+    # 主标题（第一行大标题）处理成醒目大标题
+    content = re.sub(r'^#\s*(.+?)$', r'\n\n**📌 \1**', content, flags=re.MULTILINE, count=1)
     
-    # 2. 二级标题（如 ## 聊天总结）
+    # 二级标题
     content = re.sub(r'^##\s*(.+?)$', r'\n\n### **📌 \1**', content, flags=re.MULTILINE)
     
-    # 3. 三级标题（如 ### 操作策略）
+    # 三级标题
     content = re.sub(r'^###\s*(.+?)$', r'\n\n#### **📌 \1**', content, flags=re.MULTILINE)
     
-    # 项目符号优化
+    # 项目符号优化 + 标题后增加空行
     content = content.replace("•", "\n* ")
-    
-    # 在每个加粗标题后增加换行，让标题和内容更清晰分开
-    content = re.sub(r'(\*\*📌 .+?\*\*)', r'\n\n\1\n', content)
+    content = re.sub(r'(\*\*📌 .+?\*\*)', r'\n\n\1\n\n', content)
     
     data = {
         "msgtype": "markdown",
@@ -47,10 +45,8 @@ def send_ding(content, beijing_time):
     requests.post(url, json=data)
 
 def extract_beijing_time(text):
-    """提取北京时间（仅用于显示，不用于去重）"""
     patterns = [
         r'北京时间[：:]\s*([\d\-:\sCST]+)',
-        r'北京时间[:：]\s*([0-9\-:\s]+)',
         r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s*CST)'
     ]
     for pattern in patterns:
@@ -75,13 +71,10 @@ def run():
         current_time = extract_beijing_time(raw_text) or bj_now + ":00"
         print(f"📍 当前页面北京时间: {current_time}")
         
-        # === 临时测试模式：每次都推送（关闭去重）===
         print("🔧 当前为临时测试模式 → 每次都推送（用于测试标题排版）")
         
-        # 执行推送
         send_ding(raw_text, current_time)
-        
-        print(f"🚀 已推送！（测试模式）")
+        print("🚀 已执行推送（测试模式）")
         
     except Exception as e:
         print(f"💥 运行异常: {str(e)}")
